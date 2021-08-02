@@ -305,17 +305,18 @@ if __name__ == '__main__':
     with PyCallGraph(output=GraphvizOutput()):
         #Se establecen los Hiperparametros de la red
         run=0
+        results=[]
         N0 = 50
         N_b = 50
         N_f = 20000
         #Capas
         layers = [2, 100, 100, 100, 100, 2]
         #Epocas
-        tf_epochs=10
+        tf_epochs=1000
         tf_lr=0.025
         tf_b1=0.99
         tf_eps=1e-1
-        nt_epochs=10
+        nt_epochs=1500
         nt_lr=1.2
         nt_ncorr=50
         #Frecuencia para imprimir los resultados
@@ -451,14 +452,14 @@ if __name__ == '__main__':
         loss_nt=pinn.loss_train_nt[-1]
         
         #Guardando los resultados del modelo en un CSV
-        results=[]
-        results.append(run)
-        results.append(loss_tf)
-        results.append(loss_nt)
-        results.append(error_u)
-        results.append(error_v)
-        results.append(error_h)
-        
+        result=[]
+        result.append(run)
+        result.append(loss_tf)
+        result.append(loss_nt)
+        result.append(error_u)
+        result.append(error_v)
+        result.append(error_h)
+        results.append(result)
         df_results=pd.DataFrame(results, columns=['run','loss_tf','loss_nt','error_u','error_v','error_h'])
         df_results.to_csv('results.csv', index=False)
         
