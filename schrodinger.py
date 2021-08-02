@@ -38,6 +38,30 @@ class Struct(dummy):
     if key == '__dict__':
       return super(dummy, self).__getattribute__('__dict__')
     return self.__dict__.get(key, 0)
+
+#save_model
+#Descripción: La función guarda el modelo
+def save_model(model):
+    # Serializando  model a YAML
+    model_yaml = model.to_yaml()
+    with open("model.yaml", "w") as yaml_file:
+      yaml_file.write(model_yaml)
+    # Serializando weights a HDF5
+    model.save_weights("model.h5")
+    print("Saved model to disk")
+#load_model
+#Descripción: La función carga el modelo
+def load_model():
+    yaml_file = open('model.yaml', 'r')
+    loaded_model_yaml = yaml_file.read()
+    yaml_file.close()
+    loaded_model = tf.keras.models.model_from_yaml(loaded_model_yaml)
+    return loaded_model
+#load_weights
+#Descripción:La función carga los pesos dentro del modelo
+def load_weights(loaded_model):
+    loaded_model.load_weights("model.h5")
+    return loaded_model
 #Clase del modelo de red profunda informada por la física
 class PhysicsInformedNN():
   #__init__
@@ -274,23 +298,13 @@ class PhysicsInformedNN():
     print("==================")
     print(f"Training finished (epochs {self.tf_epochs+self.nt_config.maxIter}): " + f"duration = {self.get_elapsed()}  "  )
   
-  #save_model
-  #Descripción: La función guarda el modelo
-  def save_model(self):
-    # Serializando  model a YAML
-    model_yaml = self.model.to_yaml()
-    with open("model.yaml", "w") as yaml_file:
-      yaml_file.write(model_yaml)
-    # Serializando weights a HDF5
-    self.model.save_weights("model.h5")
-    print("Saved model to disk")
-
 
 if __name__ == '__main__':
     graphviz = GraphvizOutput()
     graphviz.output_file = 'flow.png'
     with PyCallGraph(output=GraphvizOutput()):
         #Se establecen los Hiperparametros de la red
+        run=0
         N0 = 50
         N_b = 50
         N_f = 20000
@@ -404,6 +418,10 @@ if __name__ == '__main__':
         ax.set_ylim([-0.1,5.1])    
         ax.set_title('$t = %.2f$' % (t[125]), fontsize = 10)
         plt.savefig('NLS')
+        plt.figure().clear()
+        plt.close()
+        plt.cla()
+        plt.clf()
 
         df_tf=pd.DataFrame(pinn.loss_train_tf)
         df_nt=pd.DataFrame(pinn.loss_train_nt)
@@ -412,6 +430,7 @@ if __name__ == '__main__':
         epochs_nt = df_nt[0]
         loss_nt = df_nt[1]
         
+        #Grafica de minimización de loss
         fig = plt.figure()
         plt.plot(epochs_tf,loss_tf, label="ADAM")
         plt.plot(epochs_nt,loss_nt, label="LBFGS")
@@ -420,6 +439,31 @@ if __name__ == '__main__':
         plt.legend()
         plt.show()
         plt.savefig('optimizacion')
+        plt.figure().clear()
+        plt.close()
+        plt.cla()
+        plt.clf()
 
         #Guardando el modelo
-        pinn.save_model()
+        save_model(pinn.model)
+        
+        loss_tf=pinn.loss_train_tf[-1]
+        loss_nt=pinn.loss_train_nt[-1]
+        
+        #Guardando los resultados del modelo en un CSV
+        results=[]
+        results.append(run)
+        results.append(loss_tf)
+        results.append(loss_nt)
+        results.append(error_u)
+        results.append(error_v)
+        results.append(error_h)
+        
+        df_results=pd.DataFrame(results, columns=['run','loss_tf','loss_nt','error_u','error_v','error_h'])
+        df_results.to_csv('results.csv', index=False)
+        
+        
+        #Cargar el modelo 
+        trained_model= load_model()
+        trained_model= load_weights(trained_model)
+        trained_model.summary()
